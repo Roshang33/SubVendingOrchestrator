@@ -1,0 +1,51 @@
+{
+  "subscriptionname": "MyAzureSubscription6",
+  "subscriptiondetails": {
+     "tenantId": "87654321-4321-4321-4321-cba987654321",
+     "displayName": "Production Subscription 5.4",
+     "state": "Enabled",
+     "type": "Enterprise2",
+     "owner": {
+          "name": "Shawn Moe",
+          "email": "shawn.Moe@example.com"
+      },
+     "tags": {
+          "Environment": "Production",
+          "Team": "DevOps"
+     }
+  },
+  "resourceGroups": [
+    {
+      "name": "rg-production",
+      "location": "East US",
+      "resources": [
+        {
+          "name": "vm-webserver-2",
+          "type": "VirtualMachine",
+          "status": "Running"
+        },
+        {
+          "name": "storage-prod",
+          "type": "StorageAccount",
+          "status": "Available"
+        }
+      ]
+    },
+    {
+      "name": "rg-development",
+      "location": "West Europe",
+      "resources": [
+        {
+          "name": "vm-devserver-2",
+          "type": "VirtualMachine",
+          "status": "Stopped"
+        }
+      ]
+    }
+  ],
+  "security": {
+    "policiesApplied": false,
+    "lastAuditDate": "2025-01-10T15:45:00Z",
+    "complianceScore": 95
+  }
+}
