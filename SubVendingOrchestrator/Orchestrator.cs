@@ -37,46 +37,58 @@ namespace SubVendingOrchestrator
                 TaskList.Add(taskdetails);
             }
 
-            // Step 1: Build dependency graph & metadata
-            var graph = new Dictionary<string, List<string>>();
-            var inDegree = new Dictionary<string, int>();
-            var nodeMap = new Dictionary<string, JObject>();
-
-            foreach (var item in TaskList)
-            {
+            var nodes = TaskList
+            .Select(item => {
                 var obj = (JObject)item;
-                string key = obj.Properties().First().Name;  // Get the root key
-                string dependsOn = obj[key]?["dependsOn"]?.ToString(); // Get dependency
+                var key = obj.Properties().First().Name;
+                var dependsOn = (string)obj[key]?["dependsOn"];
+                return new { Key = key, DependsOn = dependsOn, Node = obj };
+            })
+            .ToList();
 
-                nodeMap[key] = obj; // Store object reference
-                graph.TryAdd(key, new List<string>());  // Ensure key exists
-                inDegree.TryAdd(key, 0);  // Ensure key exists
+            // Build the dependency graph
+            var graph = nodes.ToDictionary(n => n.Key, n => new List<string>());
+            var inDegree = nodes.ToDictionary(n => n.Key, n => 0);
+            var taskKeys = new HashSet<string>(nodes.Select(n => n.Key)); // Track existing task keys
 
-                if (!string.IsNullOrEmpty(dependsOn))
+            foreach (var node in nodes)
+            {
+                if (!string.IsNullOrEmpty(node.DependsOn) && taskKeys.Contains(node.DependsOn))
                 {
-                    graph.TryAdd(dependsOn, new List<string>());
-                    graph[dependsOn].Add(key); // Add dependency edge
-                    inDegree[key] = inDegree.GetValueOrDefault(key) + 1; // Increment dependency count
+                    graph[node.DependsOn].Add(node.Key);
+                    inDegree[node.Key]++;
+                }
+                else if (!string.IsNullOrEmpty(node.DependsOn) && !taskKeys.Contains(node.DependsOn))
+                {
+                    // Log or handle ignored dependencies
+                    Console.WriteLine($"Ignoring non-existent dependency '{node.DependsOn}' for task '{node.Key}'");
                 }
             }
 
-            // Step 2: Process nodes using Kahn's Algorithm (BFS)
-            var queue = new Queue<string>(inDegree.Where(x => x.Value == 0).Select(x => x.Key));
-            var sortedKeys = new List<string>();
+            // Kahn's Algorithm: Process nodes with in-degree of 0
+            var queue = new Queue<string>(inDegree.Where(kvp => kvp.Value == 0).Select(kvp => kvp.Key));
+            var sortedOrder = new List<string>();
 
-            while (queue.TryDequeue(out string node))
+            while (queue.Count > 0)
             {
-                sortedKeys.Add(node);
-                foreach (var neighbor in graph[node])
-                    if (--inDegree[neighbor] == 0) queue.Enqueue(neighbor);
+                var current = queue.Dequeue();
+                sortedOrder.Add(current);
+
+                foreach (var neighbor in graph[current])
+                {
+                    inDegree[neighbor]--;
+                    if (inDegree[neighbor] == 0)
+                        queue.Enqueue(neighbor);
+                }
             }
 
-            // Step 3: Execute in topological order
-            foreach (var key in sortedKeys)
+            // Output the tasks in sorted order
+            foreach (var key in sortedOrder)
             {
                 Console.WriteLine($"Processing: {key}");
-                Console.WriteLine(nodeMap[key].ToString());
-                Console.WriteLine("----------------------");
+                var node = nodes.First(n => n.Key == key).Node;
+                Console.WriteLine(node.ToString());
+                Console.WriteLine(new string('-', 30));
             }
 
         }
